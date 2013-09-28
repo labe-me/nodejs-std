@@ -19,7 +19,7 @@ typedef ExpressHttpServerReq = { > NodeHttpServerReq,
 typedef ExpressHttpServerResp = { > NodeHttpServerResp,
 	function render(name : String, params : Dynamic) : Void;
 	function redirect(url : String) : Void;
-
+	function header(name:String, value:String) : Void;
 	@:overload(function () : Void {})
 	@:overload(function (value : String, code : Int) : Void {})
 	@:overload(function (type : String, value : Dynamic, code : Int) : Void {})
