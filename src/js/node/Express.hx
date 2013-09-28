@@ -12,6 +12,8 @@ import js.node.EveryAuth;
 typedef ExpressHttpServerReq = { > NodeHttpServerReq,
 	var session : Session;
 	var body : Dynamic;
+	var query : Dynamic; // must be activated by app.use(...)
+	var params : Dynamic; // must be activated by app.use(...)
 }
 
 typedef ExpressHttpServerResp = { > NodeHttpServerResp,
