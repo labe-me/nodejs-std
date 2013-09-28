@@ -10,7 +10,7 @@ import js.node.EveryAuth;
  */
 
 typedef ExpressHttpServerReq = { > NodeHttpServerReq,
-	var session : Session;
+	var session : Dynamic;
 	var body : Dynamic;
 	var query : Dynamic; // must be activated by app.use(...)
 	var params : Dynamic; // must be activated by app.use(...)
@@ -19,11 +19,11 @@ typedef ExpressHttpServerReq = { > NodeHttpServerReq,
 typedef ExpressHttpServerResp = { > NodeHttpServerResp,
 	function render(name : String, params : Dynamic) : Void;
 	function redirect(url : String) : Void;
-  
-  @:overload(function () : Void {})
-  @:overload(function (value : String, code : Int) : Void {})
-  @:overload(function (type : String, value : Dynamic, code : Int) : Void {})
-  function send(value : Dynamic) : Void;
+
+	@:overload(function () : Void {})
+	@:overload(function (value : String, code : Int) : Void {})
+	@:overload(function (type : String, value : Dynamic, code : Int) : Void {})
+	function send(value : Dynamic) : Void;
 }
 
 
@@ -45,14 +45,23 @@ typedef ExpressServer = {
   function address() : AddressAndPort;
 }
 
+typedef CookieSessionMiddleWareParams = {
+	@:optional var key : String; // default to "connect.sess"
+	var secret : String; // prevent cookie tampering
+	@:optional var cookie : Dynamic; // session cookie settings, defaulting to `{ path: '/', httpOnly: true, maxAge: null }`
+	@:optional var proxy : Bool; // trust the reverse proxy when setting secure cookies (via "x-forwarded-proto")
+}
+
 extern
 class Express {
 
 	public function createServer (a1 :Dynamic, ?a2 :Dynamic, ?a3 :Dynamic, ?a4 :Dynamic, ?a5 :Dynamic, ?a6 :Dynamic, ?a7 :Dynamic, ?a8 :Dynamic, ?a9 :Dynamic) :ExpressServer;
 
 	public function cookieParser() :MiddleWare;
+	// populate req.session with the content of a signed cookie set on the browser
+	public function cookieSession(?params:CookieSessionMiddleWareParams) :MiddleWare;
 	public function bodyParser() :MiddleWare;
-	public function session(params :Dynamic) :Void;
+	public function session(?params :Dynamic) :MiddleWare;
 	public function router(routes :Dynamic->Void) :Void;
 	public function Static (path :String, ?options :Dynamic) :MiddleWare;
 	public function errorHandler (options :Dynamic) :MiddleWare;
