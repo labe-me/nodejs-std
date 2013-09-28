@@ -80,13 +80,13 @@ typedef NodeUrlObj = {
 	var href:String;
 	var host:String;
 	var protocol:String;
-	var auth:String;
 	var hostname:String;
 	var port:String;
 	var pathname:String;
 	var search:String;
 	var query:Dynamic;
 	var hash:String;
+	@:optional var auth:String;
 }
 
 typedef NodeUrl = {
@@ -617,6 +617,7 @@ typedef NodeHttpReqOpt = {
 	var path:String;
 	var method:String;
 	var headers:Dynamic;
+	@:optional var auth:String;
 }
 
 typedef NodeHttpsReqOpt = { > NodeHttpReqOpt,
@@ -990,5 +991,3 @@ class Node {
 	}
 	#end
 }
-
-
