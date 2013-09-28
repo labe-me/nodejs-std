@@ -37,6 +37,7 @@ typedef ExpressServer = {
 	@:overload(function(f: ExpressHttpServerReq->ExpressHttpServerResp->Dynamic->Void):Void { } )
 	function use (?middlewareMountPoint :Dynamic, middleware :Dynamic) :ConnectServer;
 	function get(path : String, f : ExpressHttpServerReq ->  ExpressHttpServerResp -> Void) : Void;
+	function set(name : String, value : String) : Void;
 	function post(path : String, f : ExpressHttpServerReq ->  ExpressHttpServerResp -> Void) : Void;
 
 	
