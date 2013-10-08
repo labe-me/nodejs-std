@@ -40,7 +40,7 @@ typedef ExpressServer = {
 	function set(name : String, value : String) : Void;
 	function post(path : String, f : ExpressHttpServerReq ->  ExpressHttpServerResp -> Void) : Void;
 
-	
+
 	function listen (port :Int, ?address :String) :Void;
 
   function address() : AddressAndPort;
@@ -55,9 +55,6 @@ typedef CookieSessionMiddleWareParams = {
 
 extern
 class Express {
-
-	public function createServer (a1 :Dynamic, ?a2 :Dynamic, ?a3 :Dynamic, ?a4 :Dynamic, ?a5 :Dynamic, ?a6 :Dynamic, ?a7 :Dynamic, ?a8 :Dynamic, ?a9 :Dynamic) :ExpressServer;
-
 	public function cookieParser() :MiddleWare;
 	// populate req.session with the content of a signed cookie set on the browser
 	public function cookieSession(?params:CookieSessionMiddleWareParams) :MiddleWare;
@@ -68,6 +65,15 @@ class Express {
 	public function errorHandler (options :Dynamic) :MiddleWare;
 
 	public function logger() : MiddleWare;
+
+
+    inline public static function require() : Express {
+        return js.Node.require("express");
+    }
+
+    inline public static function createApplication(express:Express) : ExpressServer {
+        return untyped __js__("express()");
+    }
 
 	inline public static function static_(exp : Express, path : String, ?option : Dynamic) : MiddleWare {
 		var x = exp;
