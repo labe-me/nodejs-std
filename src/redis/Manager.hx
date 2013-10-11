@@ -10,15 +10,15 @@ class UniqueIndex {
     public static function insert(manager, idxName:String, value:Dynamic, id:Dynamic, cb){
         if (value == null || id == null)
             return;
-        redis.Manager.db.hset(manager.tableName+idxName, value, id, cb);
+        redis.Manager.db.hset(manager.tableName+":"+idxName, value, id, cb);
     }
 
     public static function delete(manager, idxName:String, value:Dynamic, cb){
-        redis.Manager.db.hdel(manager.tableName+idxName, value, cb);
+        redis.Manager.db.hdel(manager.tableName+":"+idxName, value, cb);
     }
 
     public static function get<T>(manager, idxName:String, value:Dynamic, cb:NodeErr->T->Void){
-        redis.Manager.db.hget(manager.tableName+idxName, value, function(err:NodeErr, id:String){
+        redis.Manager.db.hget(manager.tableName+":"+idxName, value, function(err:NodeErr, id:String){
             if (err != null || id == null)
                 return cb(err, null);
             return manager.get(id, cb);
@@ -29,42 +29,86 @@ class UniqueIndex {
 // sort(value) -> id
 class SortedIndex {
     public static function delete(manager, idxName:String, id:Dynamic, cb){
-        redis.Manager.db.zrem(manager.tableName+idxName, id, cb);
+        redis.Manager.db.zrem(manager.tableName+":"+idxName, id, cb);
     }
 
     public static function insert(manager, idxName:String, id:Dynamic, value:Int, cb){
         if (value == null || id == null)
             return;
-        redis.Manager.db.zadd(manager.tableName+idxName, value, id, cb);
+        redis.Manager.db.zadd(manager.tableName+":"+idxName, value, id, cb);
     }
 
     public static function browseIds(manager, idxName:String, start:Int, limit:Int, cb){
-        redis.Manager.db.zrange(manager.tableName+idxName, start, start+limit-1, cb);
+        redis.Manager.db.zrange(manager.tableName+":"+idxName, start, start+limit-1, cb);
+    }
+
+    public static function browseIdsReverse(manager, idxName:String, start:Int, limit:Int, cb){
+        redis.Manager.db.zrevrange(manager.tableName+":"+idxName, start, start+limit-1, cb);
     }
 
     public static function count(manager, idxName:String, cb){
-        redis.Manager.db.zcard(manager.tableName+idxName, cb);
+        redis.Manager.db.zcard(manager.tableName+":"+idxName, cb);
+    }
+
+    public static function browse<T:Object>(manager:Manager<T>, idxName:String, start:Int, limit:Int, cb){
+        browseIds(manager, idxName, start, limit, function(err, ids){
+            if (err != null || ids == null)
+                return cb(err, null);
+            return manager.fetchMany(ids, cb);
+        });
+    }
+
+    public static function browseReverse<T:Object>(manager:Manager<T>, idxName:String, start:Int, limit:Int, cb){
+        browseIdsReverse(manager, idxName, start, limit, function(err, ids){
+            if (err != null || ids == null)
+                return cb(err, null);
+            return manager.fetchMany(ids, cb);
+        });
     }
 }
 
 // parent -> children*
 class HasManyRelation {
-    public static function insert(manager, idxName:String, parentId:Dynamic, childId:Dynamic, cb){
+    public static function insert(manager, idxName:String, parentId:Dynamic, childId:Dynamic, ?sortValue:Int, cb){
         if (parentId == null || childId == null)
             return;
-        redis.Manager.db.zadd('${manager.tableName}:${parentId}:_children', childId, childId, cb);
+        redis.Manager.db.zadd('${manager.tableName}:${parentId}:${idxName}', childId, sortValue != null ? cast sortValue : childId, cb);
     }
 
     public static function delete(manager, idxName:String, parentId:Dynamic, childId:Dynamic, cb){
-        redis.Manager.db.zrem('${manager.tableName}:${parentId}:_children', childId, cb);
+        redis.Manager.db.zrem('${manager.tableName}:${parentId}:${idxName}', childId, cb);
     }
 
     public static function parentDestroyed(manager, idxName:String, parentId:Dynamic, cb){
-        redis.Manager.db.del('${manager.tableName}:${parentId}:_children', cb);
+        redis.Manager.db.del('${manager.tableName}:${parentId}:${idxName}', cb);
     }
 
     public static function count(manager, idxName:String, parentId:Dynamic, cb){
-        redis.Manager.db.zcard('${manager.tableName}:${parentId}:_children', cb);
+        redis.Manager.db.zcard('${manager.tableName}:${parentId}:${idxName}', cb);
+    }
+
+    public static function browseIds(manager, idxName:String, parentId:Dynamic, start:Int, limit:Int, cb){
+        redis.Manager.db.zrange('${manager.tableName}:${parentId}:${idxName}', start, start+limit-1, cb);
+    }
+
+    public static function browseIdsReverse<T:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, start:Int, limit:Int, cb:NodeErr->Array<Dynamic>->Void){
+        redis.Manager.db.zrevrange('${manager.tableName}:${parentId}:${idxName}', start, start+limit-1, cb);
+    }
+
+    public static function browse<T:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, start:Int, limit:Int, cb){
+        browseIds(manager, idxName, parentId, start, limit, function(err, ids){
+            if (err != null || ids == null)
+                return cb(err, null);
+            return manager.fetchMany(ids, cb);
+        });
+    }
+
+    public static function browseReverse<T:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, start:Int, limit:Int, cb){
+        browseIdsReverse(manager, idxName, parentId, start, limit, function(err:NodeErr, ids:Array<Dynamic>){
+            if (err != null || ids == null)
+                return cb(err, null);
+            return manager.fetchMany(ids, cb);
+        });
     }
 }
 
