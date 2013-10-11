@@ -169,11 +169,13 @@ class Macro {
         }
     }
 
-    inline public static function toObject<T>(o:T) : Dynamic {
+    inline public static function toObject<T>(o:T, ?fieldsToUpdate:Array<String>) : Dynamic {
         var result = {};
         var cls = Type.getClass(o);
         var fields = haxe.rtti.Meta.getFields(cls);
-        for (f in Reflect.fields(fields)){
+        if (fieldsToUpdate == null)
+            fieldsToUpdate = Reflect.fields(fields);
+        for (f in fieldsToUpdate){
             var meta = Reflect.field(fields, f);
             if (Reflect.hasField(meta, "skip") || meta.type == null || f.charAt(0) == "_"){
                 continue;

@@ -7,9 +7,9 @@ import js.node.redis.Redis;
 
 // value -> id
 class UniqueIndex {
-    public static function insert(manager, idxName:String, value:Dynamic, id:Dynamic, cb){
+    public static function insert(manager, idxName:String, value:Dynamic, id:Dynamic, cb:IntegerReply){
         if (value == null || id == null)
-            return;
+            return cb(null, 0);
         redis.Manager.db.hset(manager.tableName+":"+idxName, value, id, cb);
     }
 
@@ -32,9 +32,9 @@ class SortedIndex {
         redis.Manager.db.zrem(manager.tableName+":"+idxName, id, cb);
     }
 
-    public static function insert(manager, idxName:String, id:Dynamic, value:Int, cb){
+    public static function insert(manager, idxName:String, id:Dynamic, value:Int, cb:IntegerReply){
         if (value == null || id == null)
-            return;
+            return cb(null, 0);
         redis.Manager.db.zadd(manager.tableName+":"+idxName, value, id, cb);
     }
 
@@ -69,30 +69,31 @@ class SortedIndex {
 
 // parent -> children*
 class HasManyRelation {
-    public static function insert(manager, idxName:String, parentId:Dynamic, childId:Dynamic, ?sortValue:Int, cb){
+    public static function insert(manager, idxName:String, parentId:Dynamic, childId:Dynamic, ?sortValue:Int, cb:IntegerReply){
         if (parentId == null || childId == null)
-            return;
-        redis.Manager.db.zadd('${manager.tableName}:${parentId}:${idxName}', childId, sortValue != null ? cast sortValue : childId, cb);
+            return cb(null, 0);
+        redis.Manager.db.zadd('${manager.tableName}:${idxName}:${parentId}', sortValue != null ? cast sortValue : childId, childId, cb);
     }
 
     public static function delete(manager, idxName:String, parentId:Dynamic, childId:Dynamic, cb){
-        redis.Manager.db.zrem('${manager.tableName}:${parentId}:${idxName}', childId, cb);
+        redis.Manager.db.zrem('${manager.tableName}:${idxName}:${parentId}', childId, cb);
     }
 
     public static function parentDestroyed(manager, idxName:String, parentId:Dynamic, cb){
-        redis.Manager.db.del('${manager.tableName}:${parentId}:${idxName}', cb);
+        redis.Manager.db.del('${manager.tableName}:${idxName}:${parentId}', cb);
     }
 
     public static function count(manager, idxName:String, parentId:Dynamic, cb){
-        redis.Manager.db.zcard('${manager.tableName}:${parentId}:${idxName}', cb);
+        redis.Manager.db.zcard('${manager.tableName}:${idxName}:${parentId}', cb);
     }
 
     public static function browseIds(manager, idxName:String, parentId:Dynamic, start:Int, limit:Int, cb){
-        redis.Manager.db.zrange('${manager.tableName}:${parentId}:${idxName}', start, start+limit-1, cb);
+        trace("BROWSE IDS "+'${manager.tableName}:${idxName}:${parentId} ${start} ${start+limit-1}');
+        redis.Manager.db.zrange('${manager.tableName}:${idxName}:${parentId}', start, start+limit-1, cb);
     }
 
     public static function browseIdsReverse<T:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, start:Int, limit:Int, cb:NodeErr->Array<Dynamic>->Void){
-        redis.Manager.db.zrevrange('${manager.tableName}:${parentId}:${idxName}', start, start+limit-1, cb);
+        redis.Manager.db.zrevrange('${manager.tableName}:${idxName}:${parentId}', start, start+limit-1, cb);
     }
 
     public static function browse<T:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, start:Int, limit:Int, cb){
@@ -170,22 +171,22 @@ class Manager<T : Object> {
         next();
     }
 
-    public function insert(obj:T, ?cb:NodeErr->T->Void){
+    public function insert(obj:T, ?cb:NodeErr->Void){
         if (cb == null)
-            cb = function(err, v) if (err != null) throw err;
+            cb = function(err) if (err != null) throw err;
         if (autoIncrementID)
             insertWithAutoID(obj, cb);
         else if ((cast obj).id == null)
-            cb('Tryied to insert ${tableName} with null id (noAutoIncrement)', obj);
+            cb('Tryied to insert ${tableName} with null id (noAutoIncrement)');
         else
             update(obj, cb);
     }
 
-    function update(obj:T, ?cb:NodeErr->T->Void){
+    function update(obj:T, ?fields:Array<String>, ?cb:NodeErr->Void){
         if (cb == null)
-            cb = function(err, v) if (err != null) throw err;
+            cb = function(err) if (err != null) throw err;
         var next = updateIndexes.bind(obj, cb);
-        db.hmset('${tableName}:${(cast obj).id}', Macro.toObject(obj), function(err, res){
+        db.hmset('${tableName}:${(cast obj).id}', Macro.toObject(obj, fields), function(err, res){
             if (err != null)
                 return next(err);
             if (expireSeconds > 0){
@@ -195,10 +196,10 @@ class Manager<T : Object> {
         });
     }
 
-    function updateIndexes(obj:T, cb:NodeErr->T->Void, err:NodeErr){
+    function updateIndexes(obj:T, cb:NodeErr->Void, err:NodeErr){
         if (err != null)
-            return cb(err, obj);
-        obj.updateIndexes(function(err:NodeErr) cb(err, obj));
+            return cb(err);
+        obj.updateIndexes(cb);
     }
 
     function delete(obj:T, ?cb:IntegerReply){
@@ -214,12 +215,12 @@ class Manager<T : Object> {
         obj.deleteIndexes(function(err) cb(err, v));
     }
 
-    function insertWithAutoID(obj:T, ?cb:NodeErr->T->Void){
+    function insertWithAutoID(obj:T, ?cb:NodeErr->Void){
         if (cb == null)
-            cb = function(err, v) if (err != null) throw err;
+            cb = function(err) if (err != null) throw err;
         incrementId(function(err, id){
             if (err != null)
-                return cb(err, obj);
+                return cb(err);
             (cast obj).id = id;
             update(obj, cb);
         });

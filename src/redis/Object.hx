@@ -38,11 +38,11 @@ class Object {
         next(null);
     }
 
-    public function insert(?cb){
+    public function insert(?cb:NodeErr->Void){
         untyped _manager.insert(this, cb);
     }
 
-    public function update(?cb){
+    public function update(?cb:NodeErr->Void){
         untyped _manager.update(this, cb);
     }
 
