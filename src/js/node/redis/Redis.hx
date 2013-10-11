@@ -6,7 +6,7 @@ package js.node.redis;
 
 import js.Node;
 
-typedef Err = Dynamic;
+typedef Err = NodeErr;
 typedef IntegerReply = Err->Int->Void;
 typedef SingleReply = Err->String->Void;
 typedef BulkReply = Err->Dynamic->Void;
@@ -109,7 +109,9 @@ typedef RedisClient = { > NodeEventEmitter,
 	function zincrby(k:String,i:Int,m:String,cb:IntegerReply):Void;
 	function zrank(k:String,m:String,cb:BulkReply):Void;
 	function zrankrev(k:String,m:String,cb:BulkReply):Void;
-	function zrange(k:String,s:Int,e:Int,?scores:Bool,cb:MultiReply):Void;
+
+    @:overload(function(k:String,s:Int,e:Int,opt:String,cb:MultiReply):Void{})
+	function zrange(k:String,s:Int,e:Int,cb:MultiReply):Void;
 	function zrevrange(k:String,s:Int,e:Int,cb:MultiReply):Void;
 	function zrangebyscore(k:String,min:Int,max:Int,cb:MultiReply):Void;
 	function zremrangebyrank(k:String,s:Int,e:Int,cb:IntegerReply):Void;

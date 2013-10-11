@@ -46,7 +46,7 @@ class Object {
         untyped _manager.update(this, cb);
     }
 
-    public function delete(?cb){
+    public function delete(?cb:NodeErr->Int->Void){
         untyped _manager.delete(this, cb);
     }
 }

@@ -621,8 +621,8 @@ typedef NodeHttpReqOpt = {
 }
 
 typedef NodeHttpsReqOpt = { > NodeHttpReqOpt,
-	var ciphers:Dynamic;
-	var rejectUnauthorized:Dynamic;
+    @:optional var ciphers:Dynamic;
+    @:optional var rejectUnauthorized:Dynamic;
 }
 
 /*

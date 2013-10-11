@@ -5,12 +5,75 @@ package redis;
 import js.Node;
 import js.node.redis.Redis;
 
+// value -> id
+class UniqueIndex {
+    public static function insert(manager, idxName:String, value:Dynamic, id:Dynamic, cb){
+        if (value == null || id == null)
+            return;
+        redis.Manager.db.hset(manager.tableName+idxName, value, id, cb);
+    }
+
+    public static function delete(manager, idxName:String, value:Dynamic, cb){
+        redis.Manager.db.hdel(manager.tableName+idxName, value, cb);
+    }
+
+    public static function get<T>(manager, idxName:String, value:Dynamic, cb:NodeErr->T->Void){
+        redis.Manager.db.hget(manager.tableName+idxName, value, function(err:NodeErr, id:String){
+            if (err != null || id == null)
+                return cb(err, null);
+            return manager.get(id, cb);
+        });
+    }
+}
+
+// sort(value) -> id
+class SortedIndex {
+    public static function delete(manager, idxName:String, id:Dynamic, cb){
+        redis.Manager.db.zrem(manager.tableName+idxName, id, cb);
+    }
+
+    public static function insert(manager, idxName:String, id:Dynamic, value:Int, cb){
+        if (value == null || id == null)
+            return;
+        redis.Manager.db.zadd(manager.tableName+idxName, value, id, cb);
+    }
+
+    public static function browseIds(manager, idxName:String, start:Int, limit:Int, cb){
+        redis.Manager.db.zrange(manager.tableName+idxName, start, start+limit-1, cb);
+    }
+
+    public static function count(manager, idxName:String, cb){
+        redis.Manager.db.zcard(manager.tableName+idxName, cb);
+    }
+}
+
+// parent -> children*
+class HasManyRelation {
+    public static function insert(manager, idxName:String, parentId:Dynamic, childId:Dynamic, cb){
+        if (parentId == null || childId == null)
+            return;
+        redis.Manager.db.zadd('${manager.tableName}:${parentId}:_children', childId, childId, cb);
+    }
+
+    public static function delete(manager, idxName:String, parentId:Dynamic, childId:Dynamic, cb){
+        redis.Manager.db.zrem('${manager.tableName}:${parentId}:_children', childId, cb);
+    }
+
+    public static function parentDestroyed(manager, idxName:String, parentId:Dynamic, cb){
+        redis.Manager.db.del('${manager.tableName}:${parentId}:_children', cb);
+    }
+
+    public static function count(manager, idxName:String, parentId:Dynamic, cb){
+        redis.Manager.db.zcard('${manager.tableName}:${parentId}:_children', cb);
+    }
+}
+
 class Manager<T : Object> {
     public static var db : RedisClient;
     static var managers = new Map<String, Manager<Dynamic>>();
 
     var managedClass : Class<Dynamic>;
-    var tableName : String;
+    public var tableName : String;
     var autoIncrementID = true;
     var expireSeconds : Int = 0;
 

@@ -144,7 +144,21 @@ class Macro {
                     case TNull: null;
                     case TFloat: Date.fromTime(current);
                     case TInt: Date.fromTime(current);
-                    default: Date.fromString(Std.string(current));
+                    default:
+                    var str = Std.string(current);
+                    try {
+                        Date.fromString(str);
+                    }
+                    catch(e:Dynamic){
+                        var r = ~/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})\./;
+                        if (r.match(str)){
+                            Date.fromString('${r.matched(1)} ${r.matched(2)}');
+                        }
+                        else {
+                            trace("Not matching");
+                            throw e;
+                        }
+                    }
                 }
                 case "Null":
                     throw "Unsupported database value "+meta.type[0];

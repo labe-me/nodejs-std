@@ -30,15 +30,24 @@ typedef ExpressHttpServerResp = { > NodeHttpServerResp,
 typedef AddressAndPort = {
   address : String,
   port : Int
-}
+};
+
+typedef ExpressRouteCallback = ExpressHttpServerReq -> ExpressHttpServerResp -> Void;
 
 typedef ExpressServer = {
 	@:overload(function(f: Dynamic->ExpressHttpServerReq->ExpressHttpServerResp->Dynamic->Void):Void { } )
 	@:overload(function(f: ExpressHttpServerReq->ExpressHttpServerResp->Dynamic->Void):Void { } )
 	function use (?middlewareMountPoint :Dynamic, middleware :Dynamic) :ConnectServer;
-	function get(path : String, f : ExpressHttpServerReq ->  ExpressHttpServerResp -> Void) : Void;
+
 	function set(name : String, value : String) : Void;
-	function post(path : String, f : ExpressHttpServerReq ->  ExpressHttpServerResp -> Void) : Void;
+
+    @:overload(function(path:String, cb:MiddleWare, f:ExpressRouteCallback):Void{})
+    @:overload(function(path:String, cbs:Array<MiddleWare>, f:ExpressRouteCallback):Void{})
+	function get(path : String, f : ExpressRouteCallback) : Void;
+
+    @:overload(function(path:String, cb:MiddleWare, f:ExpressRouteCallback):Void{})
+    @:overload(function(path:String, cbs:Array<MiddleWare>, f:ExpressRouteCallback):Void{})
+	function post(path : String, f : ExpressRouteCallback) : Void;
 
 
 	function listen (port :Int, ?address :String) :Void;
