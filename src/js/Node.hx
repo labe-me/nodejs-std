@@ -638,10 +638,14 @@ typedef NodeAgent = { > NodeEventEmitter,
 typedef NodeHttp = {
 	function createServer(listener:NodeHttpServerReq->NodeHttpServerResp->Void):NodeHttpServer;
 	function createClient(port:Int,host:String):NodeHttpClient;
+
 	@:overload(function(parsedUrl:NodeUrlObj,res:NodeHttpClientResp->Void):NodeHttpClientReq {})
 	function request(options:NodeHttpReqOpt,res:NodeHttpClientResp->Void):NodeHttpClientReq;
+
+	@:overload(function(url:String,res:NodeHttpClientResp->Void):Void {})
 	@:overload(function(parsedUrl:NodeUrlObj,res:NodeHttpClientResp->Void):Void {})
 	function get(options:NodeHttpReqOpt,res:NodeHttpClientResp->Void):Void;
+
 	function getAgent(host:String,port:Int):NodeAgent;
 }
 

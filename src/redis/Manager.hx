@@ -88,7 +88,6 @@ class HasManyRelation {
     }
 
     public static function browseIds(manager, idxName:String, parentId:Dynamic, start:Int, limit:Int, cb){
-        trace("BROWSE IDS "+'${manager.tableName}:${idxName}:${parentId} ${start} ${start+limit-1}');
         redis.Manager.db.zrange('${manager.tableName}:${idxName}:${parentId}', start, start+limit-1, cb);
     }
 

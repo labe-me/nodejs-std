@@ -96,6 +96,7 @@ typedef RedisClient = { > NodeEventEmitter,
 	function hmset(k:String, f:Array<String>,cb:SingleReply):Void;
 	function hmget(k:Array<String>,cb:MultiReply):Void;
     function hincrby(k:String,f:String,v:Int,cb:IntegerReply):Void;
+    function hincrbyfloat(k:String,f:String,v:Float,cb:IntegerReply):Void;
 	function hexists(k:String,f:String,cb:IntegerReply):Void;
 	function hdel(k:String,f:String,cb:IntegerReply):Void;
 	function hlen(k:String,cb:IntegerReply):Void;
