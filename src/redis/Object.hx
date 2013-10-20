@@ -49,4 +49,28 @@ class Object {
     public function delete(?cb:NodeErr->Int->Void){
         untyped _manager.delete(this, cb);
     }
+
+    #if promhx
+    public inline function finsert<T>(){
+        var p = new promhx.Promise<T>();
+        insert(function(err){
+            if (err != null) p.reject(err) else p.resolve(cast this);
+        });
+        return p;
+    }
+    public inline function fupdate<T>(){
+        var p = new promhx.Promise<T>();
+        update(function(err){
+            if (err != null) p.reject(err) else p.resolve(cast this);
+        });
+        return p;
+    }
+    public inline function fdelete<T>(){
+        var p = new promhx.Promise<T>();
+        delete(function(err, v){
+            if (err != null) p.reject(err) else p.resolve(v == 0 ? null : cast this);
+        });
+        return p;
+    }
+    #end
 }
