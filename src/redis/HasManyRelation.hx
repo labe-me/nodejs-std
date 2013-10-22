@@ -36,7 +36,7 @@ class HasManyRelation {
 
     }
 
-    public static function pbrowseIds(manager, idxName:String, parentId:Dynamic, start:Int, limit:Int){
+    public static function pbrowseIds(manager, idxName:String, parentId:Dynamic, start:Int, limit:Int) : Promise<Array<Dynamic>> {
         var p = new Promise();
         browseIds(manager, idxName, parentId, start, limit, function (err, v) if (err != null) p.reject(err) else p.resolve(v));
         return p;
