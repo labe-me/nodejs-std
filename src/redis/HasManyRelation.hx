@@ -49,16 +49,16 @@ class HasManyRelation {
 
     }
 
-    public static function pbrowse<T:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, start:Int, limit:Int){
+    public static function pbrowse<T:Object, C:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, childManager:Manager<C>, start:Int, limit:Int) : Promise<Array<C>> {
         var p = new Promise();
-        browse(manager, idxName, parentId, start, limit, function (err, v) if (err != null) p.reject(err) else p.resolve(v));
+        browse(manager, idxName, parentId, childManager, start, limit, function (err, v) if (err != null) p.reject(err) else p.resolve(v));
         return p;
 
     }
 
-    public static function pbrowseReverse<T:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, start:Int, limit:Int){
+    public static function pbrowseReverse<T:Object, C:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, childManager:Manager<C>, start:Int, limit:Int) : Promise<Array<C>> {
         var p = new Promise();
-        browseReverse(manager, idxName, parentId, start, limit, function (err, v) if (err != null) p.reject(err) else p.resolve(v));
+        browseReverse(manager, idxName, parentId, childManager, start, limit, function (err, v) if (err != null) p.reject(err) else p.resolve(v));
         return p;
     }
 
@@ -89,19 +89,19 @@ class HasManyRelation {
         redis.Manager.db.zrevrange('${manager.tableName}:${idxName}:${parentId}', start, start+limit-1, cb);
     }
 
-    public static function browse<T:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, start:Int, limit:Int, cb){
+    public static function browse<T:Object, C:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, childManager:Manager<C>, start:Int, limit:Int, cb){
         browseIds(manager, idxName, parentId, start, limit, function(err, ids){
             if (err != null || ids == null)
                 return cb(err, null);
-            return manager.fetchMany(ids, cb);
+            return childManager.fetchMany(ids, cb);
         });
     }
 
-    public static function browseReverse<T:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, start:Int, limit:Int, cb){
+    public static function browseReverse<T:Object, C:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, childManager:Manager<C>, start:Int, limit:Int, cb){
         browseIdsReverse(manager, idxName, parentId, start, limit, function(err:NodeErr, ids:Array<Dynamic>){
             if (err != null || ids == null)
                 return cb(err, null);
-            return manager.fetchMany(ids, cb);
+            return childManager.fetchMany(ids, cb);
         });
     }
 }

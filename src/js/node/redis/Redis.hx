@@ -65,8 +65,8 @@ typedef RedisClient = { > NodeEventEmitter,
 	function lindex(l:String,i:Int,cb:BulkReply):Void;
 	function lset(k:String,i:Int,v:String,cb:SingleReply):Void;
 	function lrem(k:String,c:Int,v:String,cb:IntegerReply):Void;
-	function lpop(k:String,cb:MultiReply):Void;
-	function rpop(k:String,cb:MultiReply):Void;
+	function lpop(k:String,cb:SingleReply):Void;
+	function rpop(k:String,cb:SingleReply):Void;
 	function blpop(k:String,s:Int,cb:MultiReply):Void;
 	function brpop(k:String,s:Int,cb:MultiReply):Void;
 	function rpoplpush(sk:String,dk:String,cb:BulkReply):Void;
