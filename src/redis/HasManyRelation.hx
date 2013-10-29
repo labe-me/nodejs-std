@@ -42,6 +42,12 @@ class HasManyRelation {
         return p;
     }
 
+    public static function pscore(manager, idxName:String, parentId:Dynamic, childId:Dynamic) : Promise<Float> {
+        var p = new Promise();
+        score(manager, idxName, parentId, childId, function(err, v) if (err != null) p.reject(err) else p.resolve(Std.parseFloat(v)));
+        return p;
+    }
+
     public static function pbrowseIdsReverse<T:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, start:Int, limit:Int){
         var p = new Promise();
         browseIdsReverse(manager, idxName, parentId, start, limit, function (err, v) if (err != null) p.reject(err) else p.resolve(v));
@@ -83,6 +89,10 @@ class HasManyRelation {
 
     public static function browseIds(manager, idxName:String, parentId:Dynamic, start:Int, limit:Int, cb){
         redis.Manager.db.zrange('${manager.tableName}:${idxName}:${parentId}', start, start+limit-1, cb);
+    }
+
+    public static function score(manager, idxName:String, parentId:Dynamic, childId:Dynamic, cb){
+        redis.Manager.db.zscore('${manager.tableName}:${idxName}:${parentId}', childId, cb);
     }
 
     public static function browseIdsReverse<T:Object>(manager:Manager<T>, idxName:String, parentId:Dynamic, start:Int, limit:Int, cb:NodeErr->Array<Dynamic>->Void){
