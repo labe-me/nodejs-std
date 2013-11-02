@@ -123,7 +123,9 @@ typedef RedisClient = { > NodeEventEmitter,
 	function zinterstore(prms:Array<Dynamic>,cb:IntegerReply):Void;
 	function sort(prms:Array<Dynamic>,cb:MultiReply):Void;
 
-    // TODO publish/subscribe
+    // publish/subscribe
+    function subscribe(channel:String, cb:String->Int->Void):Void;
+    function publish(channel:String, message:String):Void;
 }
 
 class Redis
