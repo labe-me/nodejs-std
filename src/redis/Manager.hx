@@ -140,4 +140,15 @@ class Manager<T : Object> {
             cb = function(err, v) if (err != null) throw err;
         db.incr('${tableName}:_uid', cb);
     }
+
+    public function getMaxId() : Promise<Int> {
+        var p = new Promise();
+        if (!autoIncrementID){
+            p.reject('${tableName} has not an autoIncrementID, maxId() is not available');
+        }
+        else {
+            db.get('${tableName}:_uid', function(err, res) if (err != null) p.reject(err) else if (res == null) p.resolve(0) else p.resolve(Std.parseInt(res)));
+        }
+        return p;
+    }
 }
