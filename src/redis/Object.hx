@@ -42,8 +42,8 @@ class Object {
         untyped _manager.insert(this, cb);
     }
 
-    public function update(?cb:NodeErr->Void){
-        untyped _manager.update(this, cb);
+    public function update(?fields:Array<String>, ?cb:NodeErr->Void){
+        untyped _manager.update(this, fields, cb);
     }
 
     public function delete(?cb:NodeErr->Int->Void){
@@ -58,9 +58,9 @@ class Object {
         });
         return p;
     }
-    public inline function pupdate<T>(){
+    public inline function pupdate<T>(?fields:Array<String>){
         var p = new promhx.Promise<T>();
-        update(function(err){
+        update(fields, function(err){
             if (err != null) p.reject(err) else p.resolve(cast this);
         });
         return p;
