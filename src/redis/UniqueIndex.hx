@@ -33,6 +33,16 @@ class UniqueIndex {
         return p;
     }
 
+    public inline static function pgetId(manager, idxName:String, value:Dynamic) : Promise<Dynamic> {
+        var p = new Promise();
+        redis.Manager.db.hget(manager.tableName+":"+idxName, value, function(err:NodeErr, id:String){
+            if (err != null)
+                return p.reject(err);
+            return p.resolve(id);
+        });
+        return p;
+    }
+
     public inline static function pinsert(manager, idxName:String, value:Dynamic, id:Dynamic) : Promise<Int> {
         var p = new Promise();
         insert(manager, idxName, value, id, function(err, v) if (err != null) p.reject(err) else p.resolve(v));

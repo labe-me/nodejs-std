@@ -26,14 +26,12 @@ class HasManyRelation {
         var p = new Promise();
         parentDestroyed(manager, idxName, parentId, function (err, v) if (err != null) p.reject(err) else p.resolve(v));
         return p;
-
     }
 
     public static function pcount(manager, idxName:String, parentId:Dynamic){
         var p = new Promise<Int>();
         count(manager, idxName, parentId, function (err, v) if (err != null) p.reject(err) else p.resolve(v));
         return p;
-
     }
 
     public static function pbrowseIds(manager, idxName:String, parentId:Dynamic, start:Int, limit:Int) : Promise<Array<Dynamic>> {
