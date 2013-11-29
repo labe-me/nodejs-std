@@ -30,12 +30,12 @@ class Object {
         return this;
     }
 
-    public function deleteIndexes(next:NodeErr->Void){
-        next(null);
+    public function deleteIndexes() : promhx.Promise<Dynamic> {
+        return promhx.Promise.promise(true);
     }
 
-    public function updateIndexes(next:NodeErr->Void){
-        next(null);
+    public function updateIndexes() : promhx.Promise<Dynamic> {
+        return promhx.Promise.promise(true);
     }
 
     public function insert(?cb:NodeErr->Void){

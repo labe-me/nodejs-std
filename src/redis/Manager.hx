@@ -108,7 +108,9 @@ class Manager<T : Object> {
     function updateIndexes(obj:T, cb:NodeErr->Void, err:NodeErr){
         if (err != null)
             return cb(err);
-        obj.updateIndexes(cb);
+        obj.updateIndexes()
+            .then(function(_) cb(null))
+            .error(cb);
     }
 
     function delete(obj:T, ?cb:IntegerReply){
@@ -121,7 +123,9 @@ class Manager<T : Object> {
     function deleteIndexes(obj:T, cb:IntegerReply, err:NodeErr, v:Int){
         if (err != null)
             return cb(err, v);
-        obj.deleteIndexes(function(err) cb(err, v));
+        obj.deleteIndexes()
+            .then(function(_) cb(null, v))
+            .error(function(err) cb(err, v));
     }
 
     function insertWithAutoID(obj:T, ?cb:NodeErr->Void){
@@ -149,6 +153,32 @@ class Manager<T : Object> {
         else {
             db.get('${tableName}:_uid', function(err, res) if (err != null) p.reject(err) else if (res == null) p.resolve(0) else p.resolve(Std.parseInt(res)));
         }
+        return p;
+    }
+
+    public function each<V>(f:T->Promise<V>) : Promise<Int> {
+        var n = 0;
+        var p = new Promise();
+        function next(id, maxId){
+            if (id >= maxId)
+                return p.resolve(n);
+            PromiseM.dO({
+                o <= pget(id);
+                {
+                    if (o != null){
+                        ++n;
+                        f(o);
+                    }
+                    else
+                        Promise.promise(null);
+                };
+            }).then(function(_){
+                next(id+1, maxId);
+            }).error(function(err){
+                p.reject(err);
+            });
+        }
+        getMaxId().then(function(maxId) next(1, maxId)).error(p.reject);
         return p;
     }
 }

@@ -62,12 +62,18 @@ typedef CookieSessionMiddleWareParams = {
 	@:optional var proxy : Bool; // trust the reverse proxy when setting secure cookies (via "x-forwarded-proto")
 }
 
+typedef BodyParserMiddleWareParams = {
+	@:optional var defer:Bool;
+	@:optional var uploadDir:String;
+	@:optional var limit:String;
+}
+
 extern
 class Express {
 	public function cookieParser() :MiddleWare;
 	// populate req.session with the content of a signed cookie set on the browser
 	public function cookieSession(?params:CookieSessionMiddleWareParams) :MiddleWare;
-	public function bodyParser() :MiddleWare;
+	public function bodyParser(?config:BodyParserMiddleWareParams) :MiddleWare;
 	public function session(?params :Dynamic) :MiddleWare;
 	public function router(routes :Dynamic->Void) :Void;
 	public function Static (path :String, ?options :Dynamic) :MiddleWare;
