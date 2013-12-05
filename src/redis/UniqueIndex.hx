@@ -9,6 +9,12 @@ import promhx.*;
 
 // value -> id
 class UniqueIndex {
+    public static function insertIfNotExists(manager, idxName:String, value:Dynamic, id:Dynamic, cb:IntegerReply){
+        if (value == null || id == null)
+            return cb(null, 0);
+        redis.Manager.db.hsetnx(manager.tableName+":"+idxName, value, id, cb);
+    }
+
     public static function insert(manager, idxName:String, value:Dynamic, id:Dynamic, cb:IntegerReply){
         if (value == null || id == null)
             return cb(null, 0);
