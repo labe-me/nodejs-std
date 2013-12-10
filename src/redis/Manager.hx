@@ -160,8 +160,10 @@ class Manager<T : Object> {
         var n = 0;
         var p = new Promise();
         function next(id, maxId){
-            if (id > maxId)
-                return p.resolve(n);
+            if (id > maxId){
+                p.resolve(n);
+                return;
+            }
             promhx.mdo.PromiseM.dO({
                 o <= pget(id);
                 {
