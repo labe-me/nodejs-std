@@ -739,7 +739,7 @@ typedef NodeDecipher = {
 }
 
 typedef NodeSigner = {
-	function update(data:Dynamic):Void;
+	function update(data:Dynamic):NodeSigner;
 	function sign(private_key:String,?output_format:String):Dynamic;
 }
 

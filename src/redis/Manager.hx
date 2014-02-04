@@ -5,16 +5,23 @@ package redis;
 
 import js.Node;
 import js.node.redis.Redis;
+import js.node.redis.RedisPromiseWrapper;
 import promhx.*;
 
 class Manager<T : Object> {
     public static var db : RedisClient;
+    public static var pdb : RedisPromiseWrapper;
     static var managers = new Map<String, Manager<Dynamic>>();
 
     var managedClass : Class<Dynamic>;
     public var tableName : String;
     var autoIncrementID = true;
     var expireSeconds : Int = 0;
+
+    public static function init(redis:RedisClient){
+        db = redis;
+        pdb = new RedisPromiseWrapper(redis);
+    }
 
     public function new(cls:Class<Dynamic>){
         managedClass = cls;
@@ -181,6 +188,44 @@ class Manager<T : Object> {
             });
         }
         getMaxId().then(function(maxId) next(1, maxId)).error(p.reject);
+        return p;
+    }
+
+    public function each2<V>(f:T->Promise<V>, startId=1, limit:Int=-1, incr=1) : Promise<Int> {
+        var n = 0;
+        var p = new Promise();
+        function next(id, maxId){
+            if (incr > 0 && id > maxId){
+                p.resolve(n);
+                return;
+            }
+			if (incr < 0 && id < 1){
+				p.resolve(n);
+				return;
+			}
+			if (limit >= 0 && n >= limit){
+				p.resolve(n);
+				return;
+			}
+            promhx.mdo.PromiseM.dO({
+                o <= pget(id);
+                {
+                    if (o != null){
+                        ++n;
+                        f(o);
+                    }
+                    else 
+                        Promise.promise(null);
+                };
+            }).then(function(_){
+                next(id+incr, maxId);
+            }).error(function(err){
+                p.reject(err);
+            });
+        }
+        getMaxId().then(
+			function(maxId) next((startId == -1) ? maxId : startId, maxId)
+		).error(p.reject);
         return p;
     }
 }

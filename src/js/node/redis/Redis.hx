@@ -125,7 +125,7 @@ typedef RedisClient = { > NodeEventEmitter,
 
     // publish/subscribe
     function subscribe(channel:String, cb:String->Int->Void):Void;
-    function publish(channel:String, message:String):Void;
+    function publish(channel:String, message:String, cb:Err->Int->Void):Void;
 }
 
 class Redis
