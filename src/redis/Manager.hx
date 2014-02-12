@@ -117,7 +117,7 @@ class Manager<T : Object> {
             return cb(err);
         obj.updateIndexes()
             .then(function(_) cb(null))
-            .error(cb);
+            .catchError(cb);
     }
 
     function delete(obj:T, ?cb:IntegerReply){
@@ -132,7 +132,7 @@ class Manager<T : Object> {
             return cb(err, v);
         obj.deleteIndexes()
             .then(function(_) cb(null, v))
-            .error(function(err) cb(err, v));
+            .catchError(function(err) cb(err, v));
     }
 
     function insertWithAutoID(obj:T, ?cb:NodeErr->Void){
@@ -183,11 +183,11 @@ class Manager<T : Object> {
                 };
             }).then(function(_){
                 next(id+1, maxId);
-            }).error(function(err){
+            }).catchError(function(err){
                 p.reject(err);
             });
         }
-        getMaxId().then(function(maxId) next(1, maxId)).error(p.reject);
+        getMaxId().then(function(maxId) next(1, maxId)).catchError(p.reject);
         return p;
     }
 
@@ -219,13 +219,13 @@ class Manager<T : Object> {
                 };
             }).then(function(_){
                 next(id+incr, maxId);
-            }).error(function(err){
+            }).catchError(function(err){
                 p.reject(err);
             });
         }
         getMaxId().then(
 			function(maxId) next((startId == -1) ? maxId : startId, maxId)
-		).error(p.reject);
+		).catchError(p.reject);
         return p;
     }
 }
