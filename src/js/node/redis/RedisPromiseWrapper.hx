@@ -288,6 +288,11 @@ class RedisPromiseWrapper {
 		return wrap2(client.zrankrev, k, m);
 	}
 
+	// eval script with 0 keys
+	inline public function eval0(script:String) : Promise<Int> {
+		return wrap2((cast client).eval, script, 0);
+	}
+
     //@:overload(function(k:String, s:Int, e:Int, opt:String) : Promise<Array<Dynamic>>{})
 	inline public function zrange(k:String, s:Int, e:Int) : Promise<Array<Dynamic>> {
 		return wrap3(client.zrange, k, s, e);

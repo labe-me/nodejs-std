@@ -9,55 +9,28 @@ import promhx.*;
 
 // value -> id
 class UniqueIndex {
-    public static function insertIfNotExists(manager, idxName:String, value:Dynamic, id:Dynamic, cb:IntegerReply){
+    public static function insertIfNotExists<T>(manager:Manager<T>, idxName:String, value:Dynamic, id:Dynamic) : Promise<Int> {
         if (value == null || id == null)
-            return cb(null, 0);
-        redis.Manager.db.hsetnx(manager.tableName+":"+idxName, value, id, cb);
+            return Promise.promise(0);
+        return Manager.pdb.hsetnx(manager.tableName+":"+idxName, value, id);
     }
 
-    public static function insert(manager, idxName:String, value:Dynamic, id:Dynamic, cb:IntegerReply){
+    public static function insert<T>(manager:Manager<T>, idxName:String, value:Dynamic, id:Dynamic) : Promise<Int> {
         if (value == null || id == null)
-            return cb(null, 0);
-        redis.Manager.db.hset(manager.tableName+":"+idxName, value, id, cb);
+			return Promise.promise(0);
+        return Manager.pdb.hset(manager.tableName+":"+idxName, value, id);
     }
 
-    public static function delete(manager, idxName:String, value:Dynamic, cb){
-        redis.Manager.db.hdel(manager.tableName+":"+idxName, value, cb);
+    public static function delete<T>(manager:Manager<T>, idxName:String, value:Dynamic) : Promise<Int> {
+        return Manager.pdb.hdel(manager.tableName+":"+idxName, value);
     }
 
-    public static function get<T>(manager, idxName:String, value:Dynamic, cb:NodeErr->T->Void){
-        redis.Manager.db.hget(manager.tableName+":"+idxName, value, function(err:NodeErr, id:String){
-            if (err != null || id == null)
-                return cb(err, null);
-            return manager.get(id, cb);
-        });
+    public inline static function get<T>(manager:Manager<T>, idxName:String, value:Dynamic) : Promise<T> {
+        return getId(manager, idxName, value)
+			.pipe(manager.get);
     }
 
-    public inline static function pget<T>(manager, idxName:String, value:Dynamic) : Promise<T> {
-        var p = new Promise();
-        get(manager, idxName, value, function(err, v) if (err != null) p.reject(err) else p.resolve(v));
-        return p;
-    }
-
-    public inline static function pgetId(manager, idxName:String, value:Dynamic) : Promise<Dynamic> {
-        var p = new Promise();
-        redis.Manager.db.hget(manager.tableName+":"+idxName, value, function(err:NodeErr, id:String){
-            if (err != null)
-                return p.reject(err);
-            return p.resolve(id);
-        });
-        return p;
-    }
-
-    public inline static function pinsert(manager, idxName:String, value:Dynamic, id:Dynamic) : Promise<Int> {
-        var p = new Promise();
-        insert(manager, idxName, value, id, function(err, v) if (err != null) p.reject(err) else p.resolve(v));
-        return p;
-    }
-
-    public inline static function pdelete(manager, idxName:String, value:Dynamic) : Promise<Int> {
-        var p = new Promise();
-        delete(manager, idxName, value, function(err, v) if (err != null) p.reject(err) else p.resolve(v));
-        return p;
+    public inline static function getId<T>(manager:Manager<T>, idxName:String, value:Dynamic) : Promise<Dynamic> {
+        return Manager.pdb.hget(manager.tableName+":"+idxName, value);
     }
 }

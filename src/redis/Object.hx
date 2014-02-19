@@ -4,6 +4,9 @@
 package redis;
 import js.Node;
 import js.node.redis.*;
+import promhx.*;
+import promhx.mdo.*;
+
 
 /*
 
@@ -38,39 +41,27 @@ class Object {
         return promhx.Promise.promise(true);
     }
 
-    public function insert(?cb:NodeErr->Void){
-        untyped _manager.insert(this, cb);
+    public function oldInsert(?cb:NodeErr->Void){
+        untyped _manager.oldInsert(this, cb);
     }
 
-    public function update(?fields:Array<String>, ?cb:NodeErr->Void){
-        untyped _manager.update(this, fields, cb);
+    public function oldUpdate(?fields:Array<String>, ?cb:NodeErr->Void){
+        untyped _manager.oldUpdate(this, fields, cb);
     }
 
-    public function delete(?cb:NodeErr->Int->Void){
-        untyped _manager.delete(this, cb);
+    public function oldDelete(?cb:NodeErr->Int->Void){
+        untyped _manager.oldDelete(this, cb);
     }
 
-    #if promhx
-    public inline function pinsert<T>(){
-        var p = new promhx.Promise<T>();
-        insert(function(err){
-            if (err != null) p.reject(err) else p.resolve(cast this);
-        });
-        return p;
+    public function insert<T>() : Promise<T> {
+		return (cast _manager).insert(this);
     }
-    public inline function pupdate<T>(?fields:Array<String>){
-        var p = new promhx.Promise<T>();
-        update(fields, function(err){
-            if (err != null) p.reject(err) else p.resolve(cast this);
-        });
-        return p;
+	
+    public function update<T>(?fields:Array<String>) : Promise<T> {
+		return (cast _manager).update(this, fields);
     }
-    public inline function pdelete<T>(){
-        var p = new promhx.Promise<T>();
-        delete(function(err, v){
-            if (err != null) p.reject(err) else p.resolve(v == 0 ? null : cast this);
-        });
-        return p;
+	
+    public function delete<T>() : Promise<Bool> {
+		return (cast _manager).delete(this).then(function(n) return n > 0);
     }
-    #end
 }

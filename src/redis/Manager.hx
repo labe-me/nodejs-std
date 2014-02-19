@@ -7,10 +7,12 @@ import js.Node;
 import js.node.redis.Redis;
 import js.node.redis.RedisPromiseWrapper;
 import promhx.*;
+import promhx.mdo.*;
 
 class Manager<T : Object> {
-    public static var db : RedisClient;
     public static var pdb : RedisPromiseWrapper;
+
+	static var db : RedisClient;
     static var managers = new Map<String, Manager<Dynamic>>();
 
     var managedClass : Class<Dynamic>;
@@ -37,7 +39,19 @@ class Manager<T : Object> {
         managers.set(Type.getClassName(cls), this);
     }
 
-    public function get(id:Dynamic, cb:NodeErr->T->Void){
+    public inline function get(id:Dynamic) : Promise<T> {
+		if (id == null)
+			return Promise.promise(null);
+        return pdb.hgetall('${tableName}:${id}').then(function(res){
+			if (res == null)
+				return null;
+			var result = Type.createInstance(managedClass, []);
+			Macro.fillObject(result, res);
+			return result;
+        });
+    }
+
+    public function oldGet(id:Dynamic, cb:NodeErr->T->Void){
         if (id == null)
             return cb(null, null);
         db.hgetall('${tableName}:${id}', function(err, res){
@@ -55,115 +69,94 @@ class Manager<T : Object> {
             }
         });
     }
-
-    #if promhx
-    public inline function pget(id:Dynamic) : Promise<T> {
-        var res = new Promise<T>();
-        get(id, function(err, o){
-            if (err != null)
-                res.reject(err);
-            else
-                res.resolve(o);
-        });
-        return res;
-    }
-    #end
-
-    public function fetchMany(ids:Array<Dynamic>, cb:NodeErr->Array<T>->Void){
+	
+    public function fetchMany(ids:Array<Dynamic>) : Promise< Array<T> > {
+		if (ids == null || ids.length == 0)
+			return Promise.promise([]);
+		var p = new Promise();
         var ids = ids.copy();
         var result = [];
         var next = null;
         next = function(){
-            if (ids.length == 0)
-                return cb(null, result);
-            return get(ids.shift(), function(err, t){
-                if (err != null)
-                    return cb(err, null);
+            if (ids.length == 0){
+				p.resolve(result);
+				return;
+			}
+            get(ids.shift()).then(function(t){
                 if (t != null)
                     result.push(t);
                 return next();
-            });
+            }).catchError(function(e){
+				p.reject(e);
+			});
         }
         next();
+		return p;
     }
 
-    public function insert(obj:T, ?cb:NodeErr->Void){
-        if (cb == null)
-            cb = function(err) if (err != null) throw err;
-        if (autoIncrementID)
-            insertWithAutoID(obj, cb);
-        else if ((cast obj).id == null)
-            cb('Tryied to insert ${tableName} with null id (noAutoIncrement)');
-        else
-            update(obj, cb);
-    }
+	@:allow(redis.Object)
+	function insert(obj:T){
+		if (autoIncrementID)
+			return insertWithAutoID(obj);
+		else if ((cast obj).id == null){
+			var p = new Promise();
+			p.reject('Tryied to insert ${tableName} with null id (noAutoIncrement)');
+			return p;
+		}
+		else
+			return update(obj);
+	}
 
-    function update(obj:T, ?fields:Array<String>, ?cb:NodeErr->Void){
-        if (cb == null)
-            cb = function(err) if (err != null) throw err;
-        var next = updateIndexes.bind(obj, cb);
-        db.hmset('${tableName}:${(cast obj).id}', Macro.toObject(obj, fields), function(err, res){
-            if (err != null)
-                return next(err);
-            if (expireSeconds > 0){
-                return db.expire('${tableName}:${(cast obj).id}', expireSeconds, function(err, _) next(err));
-            }
-            return next(null);
-        });
-    }
+	@:allow(redis.Object)
+	function update(obj:T, ?fields:Array<String>){
+		return PromiseM.dO({
+			// store fields
+			pdb.hmset('${tableName}:${(cast obj).id}', Macro.toObject(obj, fields));
+			// set expiration when required
+			if (expireSeconds > 0)
+				pdb.expire('${tableName}:${(cast obj).id}', expireSeconds);
+			else
+				Promise.promise(null);
+			// update indexes
+			obj.updateIndexes();
+		});
+	}
+	
+	@:allow(redis.Object)
+	function delete(obj:T) : Promise<Int> {
+		return PromiseM.dO({
+			n <= pdb.del('${tableName}:${(cast obj).id}');
+			if (n > 0)
+				obj.deleteIndexes();
+			else
+				Promise.promise(null);
+			ret(n);
+		});
+	}
+	
+	function insertWithAutoID(obj:T){
+		return incrementId().pipe(function(id){
+			(cast obj).id = id;
+			return update(obj);
+		});
+	}
 
-    function updateIndexes(obj:T, cb:NodeErr->Void, err:NodeErr){
-        if (err != null)
-            return cb(err);
-        obj.updateIndexes()
-            .then(function(_) cb(null))
-            .catchError(cb);
-    }
-
-    function delete(obj:T, ?cb:IntegerReply){
-        if (cb == null)
-            cb = function(err, v) if (err != null) throw err;
-        var next = deleteIndexes.bind(obj, cb);
-        db.del('${tableName}:${(cast obj).id}', next);
-    }
-
-    function deleteIndexes(obj:T, cb:IntegerReply, err:NodeErr, v:Int){
-        if (err != null)
-            return cb(err, v);
-        obj.deleteIndexes()
-            .then(function(_) cb(null, v))
-            .catchError(function(err) cb(err, v));
-    }
-
-    function insertWithAutoID(obj:T, ?cb:NodeErr->Void){
-        if (cb == null)
-            cb = function(err) if (err != null) throw err;
-        incrementId(function(err, id){
-            if (err != null)
-                return cb(err);
-            (cast obj).id = id;
-            update(obj, cb);
-        });
-    }
-
-    function incrementId(cb:NodeErr->Int->Void){
-        if (cb == null)
-            cb = function(err, v) if (err != null) throw err;
-        db.incr('${tableName}:_uid', cb);
-    }
+	function incrementId() : Promise<Int> {
+		return pdb.incr('${tableName}:_uid');
+	}
 
     public function getMaxId() : Promise<Int> {
-        var p = new Promise();
-        if (!autoIncrementID){
-            p.reject('${tableName} has not an autoIncrementID, maxId() is not available');
-        }
-        else {
-            db.get('${tableName}:_uid', function(err, res) if (err != null) p.reject(err) else if (res == null) p.resolve(0) else p.resolve(Std.parseInt(res)));
-        }
-        return p;
+		return PromiseM.dO({
+			id <= {
+				if (!autoIncrementID)
+					throw '${tableName} has not an autoIncrementID, maxId() is not available';
+				pdb.get('${tableName}:_uid');
+			};
+			ret(if (id == null) 0 else Std.parseInt(id));
+		});
     }
 
-    public function each<V>(f:T->Promise<V>) : Promise<Int> {
+    public function oldEach<V>(f:T->Promise<V>) : Promise<Int> {
         var n = 0;
         var p = new Promise();
         function next(id, maxId){
@@ -172,7 +165,7 @@ class Manager<T : Object> {
                 return;
             }
             promhx.mdo.PromiseM.dO({
-                o <= pget(id);
+                o <= get(id);
                 {
                     if (o != null){
                         ++n;
@@ -191,7 +184,7 @@ class Manager<T : Object> {
         return p;
     }
 
-    public function each2<V>(f:T->Promise<V>, startId=1, limit:Int=-1, incr=1) : Promise<Int> {
+    public function each<V>(startId=1, limit:Int=-1, incr=1, f:T->Promise<V>) : Promise<Int> {
         var n = 0;
         var p = new Promise();
         function next(id, maxId){
@@ -208,7 +201,7 @@ class Manager<T : Object> {
 				return;
 			}
             promhx.mdo.PromiseM.dO({
-                o <= pget(id);
+                o <= get(id);
                 {
                     if (o != null){
                         ++n;
@@ -228,4 +221,72 @@ class Manager<T : Object> {
 		).catchError(p.reject);
         return p;
     }
+
+	// Old method with callbacks, deprecated
+
+    public function oldInsert(obj:T, ?cb:NodeErr->Void){
+        if (cb == null)
+            cb = function(err) if (err != null) throw err;
+        if (autoIncrementID)
+            oldInsertWithAutoID(obj, cb);
+        else if ((cast obj).id == null)
+            cb('Tryied to insert ${tableName} with null id (noAutoIncrement)');
+        else
+            oldUpdate(obj, cb);
+    }
+
+    function oldUpdate(obj:T, ?fields:Array<String>, ?cb:NodeErr->Void){
+        if (cb == null)
+            cb = function(err) if (err != null) throw err;
+        var next = oldUpdateIndexes.bind(obj, cb);
+        db.hmset('${tableName}:${(cast obj).id}', Macro.toObject(obj, fields), function(err, res){
+            if (err != null)
+                return next(err);
+            if (expireSeconds > 0){
+                return db.expire('${tableName}:${(cast obj).id}', expireSeconds, function(err, _) next(err));
+            }
+            return next(null);
+        });
+    }
+
+    function oldUpdateIndexes(obj:T, cb:NodeErr->Void, err:NodeErr){
+        if (err != null)
+            return cb(err);
+        obj.updateIndexes()
+            .then(function(_) cb(null))
+            .catchError(cb);
+    }
+
+    function oldDelete(obj:T, ?cb:IntegerReply){
+        if (cb == null)
+            cb = function(err, v) if (err != null) throw err;
+        var next = oldDeleteIndexes.bind(obj, cb);
+        db.del('${tableName}:${(cast obj).id}', next);
+    }
+
+    function oldDeleteIndexes(obj:T, cb:IntegerReply, err:NodeErr, v:Int){
+        if (err != null)
+            return cb(err, v);
+        obj.deleteIndexes()
+            .then(function(_) cb(null, v))
+            .catchError(function(err) cb(err, v));
+    }
+
+    function oldInsertWithAutoID(obj:T, ?cb:NodeErr->Void){
+        if (cb == null)
+            cb = function(err) if (err != null) throw err;
+        oldIncrementId(function(err, id){
+            if (err != null)
+                return cb(err);
+            (cast obj).id = id;
+            oldUpdate(obj, cb);
+        });
+    }
+
+    function oldIncrementId(cb:NodeErr->Int->Void){
+        if (cb == null)
+            cb = function(err, v) if (err != null) throw err;
+        db.incr('${tableName}:_uid', cb);
+    }
+
 }
