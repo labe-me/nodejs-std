@@ -54,11 +54,11 @@ class Object {
     }
 
     public function insert<T>() : Promise<T> {
-		return (cast _manager).insert(this);
+		return (cast _manager).insert(this).then(function(_) return this);
     }
 	
     public function update<T>(?fields:Array<String>) : Promise<T> {
-		return (cast _manager).update(this, fields);
+		return (cast _manager).update(this, fields).then(function(_) return this);
     }
 	
     public function delete<T>() : Promise<Bool> {
