@@ -17,7 +17,7 @@ class HasManyRelation {
     }
 
     public static function delete<T>(manager:Manager<T>, idxName:String, parentId:Dynamic, childId:Dynamic){
-		return Manager.pdb.del('${manager.tableName}:${idxName}:${parentId}');
+		return Manager.pdb.zrem('${manager.tableName}:${idxName}:${parentId}', childId);
     }
 
     public static function parentDestroyed<T>(manager:Manager<T>, idxName:String, parentId:Dynamic){
