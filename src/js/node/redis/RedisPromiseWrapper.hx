@@ -267,7 +267,7 @@ class RedisPromiseWrapper {
 	inline public function hvals(k:String) : Promise<Array<Dynamic>> {
 		return wrap1(client.hvals, k);
 	}
-	inline public function hgetall(k:String) : Promise<Array<Dynamic>> {
+	inline public function hgetall(k:String) : Promise<Dynamic> {
 		return wrap1(client.hgetall, k);
 	}
 
