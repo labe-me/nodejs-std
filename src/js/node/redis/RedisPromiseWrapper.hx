@@ -303,6 +303,9 @@ class RedisPromiseWrapper {
 	inline public function zrangebyscore(k:String, min:Int, max:Int) : Promise<Array<Dynamic>> {
 		return wrap3(client.zrangebyscore, k, min, max);
 	}
+	inline public function zrevrangebyscore(k:String, max:Int, min:Int) : Promise<Array<Dynamic>> {
+		return wrap3(client.zrevrangebyscore, k, max, min);
+	}
 	inline public function zremrangebyrank(k:String, s:Int, e:Int) : Promise<Int> {
 		return wrap3(client.zremrangebyrank, k, s, e);
 	}
